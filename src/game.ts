@@ -1,51 +1,40 @@
-/// --- Set up a system ---
+//global
+let player = Camera.instance
+let movespeed=2
+const boundarySizeXmax=16-3
+const boundarySizeXmin=3
+const boundarySizeZmax=16-3
+const boundarySizeZmin=3
 
-class RotatorSystem {
-  // this group will contain every entity that has a Transform component
-  group = engine.getComponentGroup(Transform)
+//assets
+let zombieshape = new GLTFShape('models/zombie.glb')
 
-  update(dt: number) {
-    // iterate over the entities of the group
-    for (const entity of this.group.entities) {
-      // get the Transform component of the entity
-      const transform = entity.getComponent(Transform)
+//components
+@Component("FollowsPlayer")
+export class FollowsPlayer{}
 
-      // mutate the rotation
-      transform.rotate(Vector3.Up(), dt * 10)
+//entities
+let zombie = new Entity()
+zombie.addComponent(new Transform({position: new Vector3(8,0,8)}))
+zombie.addComponent(zombieshape)
+zombie.addComponent(new FollowsPlayer())
+
+engine.addEntity(zombie)
+
+// system
+class PlayerFollowSystem{
+    group = engine.getComponentGroup(FollowsPlayer)
+
+    update(dt:number){
+        for (let entity of this.group.entities)
+        {
+            let transform =  entity.getComponent(Transform)
+            let movedir = player.position.subtract(transform.position)
+            movedir = movedir.normalize().multiplyByFloats(movespeed *dt,0,movespeed *dt)
+            transform.position.addInPlace(movedir)
+            transform.lookAt(player.feetPosition)   
+        }
     }
-  }
 }
 
-// Add a new instance of the system to the engine
-engine.addSystem(new RotatorSystem())
-
-/// --- Spawner function ---
-
-// function spawnCube(x: number, y: number, z: number) {
-//   // create the entity
-//   const cube = new Entity()
-
-//   // add a transform to the entity
-//   cube.addComponent(new Transform({ position: new Vector3(x, y, z) }))
-
-//   // add a shape to the entity
-//   cube.addComponent(new BoxShape())
-
-//   // add the entity to the engine
-//   engine.addEntity(cube)
-
-//   return cube
-// }
-
-// /// --- Spawn a cube ---
-
-// const cube = spawnCube(8, 1, 8)
-
-// cube.addComponent(
-//   new OnPointerDown(() => {
-//     cube.getComponent(Transform).scale.z *= 1.1
-//     cube.getComponent(Transform).scale.x *= 0.9
-
-//     spawnCube(Math.random() * 8 + 1, Math.random() * 8, Math.random() * 8 + 1)
-//   })
-// )
+engine.addSystem(new PlayerFollowSystem())
