@@ -1,46 +1,102 @@
+//install command di terminal
+//npm i @dcl/ui-scene-utils -B
+//npm install @dcl/ecs-scene-utils -B
+
 import { Zombie } from './zombie'
+import * as utils from '@dcl/ecs-scene-utils'
+import * as ui from '@dcl/ui-scene-utils'
+
+let hp_player = new ui.UIBar(1, -30, 130, Color4.Red(), ui.BarStyles.ROUNDSILVER, 1)
+let game = true
 
 //global
 let player = Camera.instance
-let movespeed=2
-const boundarySizeXmax=16-3
-const boundarySizeXmin=3
-const boundarySizeZmax=16-3
-const boundarySizeZmin=3
+let zombieCount: number = 8
+let zombies: Zombie[] = [] 
 
-//assets
-let zombieshape = new GLTFShape('models/zombie.glb')
+function addZombies() {
+  for (let i = 0; i < zombieCount; i++) {
+    let posX = Math.random() * 32
+    let posY = Math.random() * 32
+    let zombie = new Zombie(
+      new GLTFShape('models/zombie.glb'),
+      new Transform({
+        position: new Vector3(posX, 0, posY),
+        scale : new Vector3(0.6,0.6,0.6),
+      }),
+      100,
+    )
 
-//components
-@Component("FollowsPlayer")
-export class FollowsPlayer{}
-
-//entities
-let zombie = new Entity()
-zombie.addComponent(new Transform({position: new Vector3(8,0,8)}))
-zombie.addComponent(zombieshape)
-zombie.addComponent(new FollowsPlayer())
-
-engine.addEntity(zombie)
-
-// system
-class PlayerFollowSystem{
-    group = engine.getComponentGroup(FollowsPlayer)
-
-    update(dt:number){
-        for (let entity of this.group.entities)
-        {
-            let transform =  entity.getComponent(Transform)
-            let movedir = player.position.subtract(transform.position)
-            movedir = movedir.normalize().multiplyByFloats(movespeed *dt,0,movespeed *dt)
-            transform.position.addInPlace(movedir)
-            transform.lookAt(player.feetPosition)   
+    zombie.addComponent(
+      new utils.TriggerComponent(new utils.TriggerSphereShape(2), {
+        onCameraEnter: () => {
+          hp_player.decrease(0.1)
+          if(hp_player.read() <= 0)
+          { 
+            for (let zombie of zombies) {
+              engine.removeEntity(zombie);
+            }
+            new ui.OptionPrompt(
+              "You are dead!!",
+              "Do you want to play again?",
+              ()=>{
+                hp_player
+                addZombies()
+              },
+              ()=>{},
+              "Yes",
+              "No",
+              true
+            )
+          }
         }
-    }
+      })
+    )
+    zombies.push(zombie)
+  }
 }
 
-engine.addSystem(new PlayerFollowSystem())
+if(game)
+  addZombies()
 
+const MOVE_SPEED = 2
+const ROT_SPEED = 2
+
+class ZombieAttack implements ISystem {
+  update(dt: number) {
+    for (let zombie of zombies) {
+      const transform = zombie.getComponent(Transform)
+      let lookAtTarget = new Vector3(
+        player.position.x,
+        transform.position.y,
+        player.position.z
+      )
+      let direction = lookAtTarget.subtract(transform.position)
+      transform.rotation = Quaternion.Slerp(
+        transform.rotation,
+        Quaternion.LookRotation(direction),
+        dt * ROT_SPEED
+      )
+      let distance = Vector3.DistanceSquared(
+        transform.position,
+        player.position
+      )
+
+      if (distance >= 4) {
+        zombie.walk()
+        let forwardVector = Vector3.Forward().rotate(transform.rotation)
+        let increment = forwardVector.scale(dt * MOVE_SPEED)
+        transform.translate(increment)
+      } else {
+        zombie.attack()
+      }
+    }
+  }
+}
+
+engine.addSystem(new ZombieAttack())
+
+// system
 
 const _scene = new Entity('_scene')
 engine.addEntity(_scene)
@@ -810,79 +866,3 @@ const transform63 = new Transform({
 smallComet5.addComponentOrReplace(transform63)
 
 //ZOMBIE
-
-let zombieCount: number = 8
-
-let zombies: Zombie[] = []
-
-Input.instance.subscribe('BUTTON_DOWN', ActionButton.PRIMARY, false, () => {
-  if (zombies.length > 1) {
-    for (let zombie of zombies) {
-      engine.removeEntity(zombie)
-    }
-  }
-
-  addZombies()
-})
-
-function addZombies() {
-  for (let i = 0; i < zombieCount; i++) {
-    let posX = Math.random() * 32
-    let posY = Math.random() * 32
-
-    let zombie = new Zombie(
-      new GLTFShape('models/zombie.glb'),
-      new Transform({
-        position: new Vector3(posX, 0.933, posY),
-      })
-    )
-    zombies.push(zombie)
-  }
-}
-
-addZombies()
-
-// Zombie
-
-// Configuration
-const MOVE_SPEED = 1
-const ROT_SPEED = 1
-
-class ZombieAttack implements ISystem {
-  update(dt: number) {
-    // Rotate to face the player
-
-    for (let zombie of zombies) {
-      const transform = zombie.getComponent(Transform)
-
-      let lookAtTarget = new Vector3(
-        player.position.x,
-        transform.position.y,
-        player.position.z
-      )
-      let direction = lookAtTarget.subtract(transform.position)
-      transform.rotation = Quaternion.Slerp(
-        transform.rotation,
-        Quaternion.LookRotation(direction),
-        dt * ROT_SPEED
-      )
-
-      // Continue to move towards the player until it is within 2m away
-      let distance = Vector3.DistanceSquared(
-        transform.position,
-        player.position
-      ) // Check distance squared as it's more optimized
-      if (distance >= 4) {
-        // Note: Distance is squared so a value of 4 is when the zombie is standing 2m away
-        zombie.walk()
-        let forwardVector = Vector3.Forward().rotate(transform.rotation)
-        let increment = forwardVector.scale(dt * MOVE_SPEED)
-        transform.translate(increment)
-      } else {
-        zombie.attack()
-      }
-    }
-  }
-}
-
-engine.addSystem(new ZombieAttack())
