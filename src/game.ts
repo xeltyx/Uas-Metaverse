@@ -9,10 +9,14 @@ import * as ui from '@dcl/ui-scene-utils'
 let hp_player = new ui.UIBar(1, -30, 130, Color4.Red(), ui.BarStyles.ROUNDSILVER, 1)
 let game = true
 
+//zombie sound
+const clip = new AudioClip("sounds/Zombie_att.mp3")
+const source = new AudioSource(clip)
+
 //global
 let player = Camera.instance
 let zombieCount: number = 8
-let zombies: Zombie[] = [] 
+let zombies: Zombie[] = []
 
 function addZombies() {
   for (let i = 0; i < zombieCount; i++) {
@@ -22,7 +26,7 @@ function addZombies() {
       new GLTFShape('models/zombie.glb'),
       new Transform({
         position: new Vector3(posX, 0, posY),
-        scale : new Vector3(0.6,0.6,0.6),
+        scale: new Vector3(0.6, 0.6, 0.6),
       }),
       100,
     )
@@ -31,19 +35,18 @@ function addZombies() {
       new utils.TriggerComponent(new utils.TriggerSphereShape(2), {
         onCameraEnter: () => {
           hp_player.decrease(0.1)
-          if(hp_player.read() <= 0)
-          { 
+          if (hp_player.read() <= 0) {
             for (let zombie of zombies) {
               engine.removeEntity(zombie);
             }
             new ui.OptionPrompt(
               "You are dead!!",
               "Do you want to play again?",
-              ()=>{
+              () => {
                 hp_player
                 addZombies()
               },
-              ()=>{},
+              () => { },
               "Yes",
               "No",
               true
@@ -52,11 +55,15 @@ function addZombies() {
         }
       })
     )
+    zombie.addComponent(source)
+    source.loop = true
+    source.volume = 1
+    source.playing = true
     zombies.push(zombie)
   }
 }
 
-if(game)
+if (game)
   addZombies()
 
 const MOVE_SPEED = 2
