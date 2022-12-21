@@ -18,6 +18,8 @@ let player = Camera.instance
 let zombieCount: number = 8
 let zombies: Zombie[] = []
 
+
+
 function addZombies() {
   for (let i = 0; i < zombieCount; i++) {
     let posX = Math.random() * 32
@@ -26,7 +28,7 @@ function addZombies() {
       new GLTFShape('models/zombie.glb'),
       new Transform({
         position: new Vector3(posX, 0, posY),
-        scale: new Vector3(0.6, 0.6, 0.6),
+        scale: new Vector3(0.6, 0.6, 0.6)
       }),
       100,
     )
@@ -43,7 +45,7 @@ function addZombies() {
               "You are dead!!",
               "Do you want to play again?",
               () => {
-                hp_player
+                hp_player.set(1);
                 addZombies()
               },
               () => { },
@@ -57,7 +59,7 @@ function addZombies() {
     )
     zombie.addComponent(source)
     source.loop = true
-    source.volume = 1
+    source.volume = 0
     source.playing = true
     zombies.push(zombie)
   }
@@ -65,6 +67,9 @@ function addZombies() {
 
 if (game)
   addZombies()
+
+const input = Input.instance;
+
 
 const MOVE_SPEED = 2
 const ROT_SPEED = 2
@@ -102,6 +107,7 @@ class ZombieAttack implements ISystem {
 }
 
 engine.addSystem(new ZombieAttack())
+
 
 // system
 
