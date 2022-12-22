@@ -101,6 +101,24 @@ class ZombieAttack implements ISystem {
   }
 }
 
+// Sounds
+const gunShot = new Entity()
+gunShot.addComponent(new AudioSource(new AudioClip('sounds/shot.mp3')))
+gunShot.addComponent(new Transform())
+engine.addEntity(gunShot)
+gunShot.setParent(Attachable.AVATAR)
+
+// Controls
+const input = Input.instance
+
+input.subscribe('BUTTON_DOWN', ActionButton.POINTER, true, (e) => {
+  
+  gunShot.getComponent(AudioSource).playOnce()
+  if (engine.entities[e.hit.entityId] !== undefined) {
+    engine.removeEntity(e)
+  }
+})
+
 engine.addSystem(new ZombieAttack())
 
 // system
