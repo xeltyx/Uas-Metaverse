@@ -6,13 +6,6 @@ export class Zombie extends Entity {
     this.addComponent(transform)
     this.zombieHp = zombieHp
     this.addComponent(new Animator())
-    this.addComponent(
-      new OnPointerDown(
-        (e) => {},
-        { button: ActionButton.POINTER, hoverText: "Shoot" }
-      )
-    )
-    
     this.getComponent(Animator).addClip(
       new AnimationState('WALK', { looping: true })
     )
